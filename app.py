@@ -34,8 +34,15 @@ def download():
         else:
             fmt = "best"
 
-        # Opciones yt-dlp
-        ydl_opts = {"outtmpl": output_template, "merge_output_format": "mp4"}
+        # Opciones yt-dlp con User-Agent para evitar errores de restricción
+        ydl_opts = {
+            "outtmpl": output_template, 
+            "merge_output_format": "mp4",
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.5"
+            }
+        }
 
         if mode == "audio":
             ydl_opts.update({
