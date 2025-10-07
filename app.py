@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Cambia esta API_KEY por una segura
-API_KEY = os.environ.get("API_KEY", "1234abcd")
+API_KEY = os.environ.get("API_KEY", "Realne$$")
 
 @app.route("/download", methods=["POST"])
 def download():
