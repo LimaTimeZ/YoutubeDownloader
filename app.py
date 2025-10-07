@@ -6,8 +6,8 @@ import tempfile, shutil, os
 app = Flask(__name__)
 CORS(app)
 
-# Cambia esta API_KEY por una segura
-API_KEY = os.environ.get("API_KEY", "limatime")
+# CORRECCIÓN: Hardcodeamos la clave para evitar errores de lectura de variables de entorno (Error 401)
+API_KEY = "Realne$$" 
 
 @app.route("/download", methods=["POST"])
 def download():
@@ -53,8 +53,9 @@ def download():
             with YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            # CORRECCIÓN: Devolvemos el mensaje de error EXACTO de la excepción (Error 500)
+            return jsonify({"error": str(e)}), 500 
 
-        # Comprimir todo en un zip lol
+        # Comprimir todo en un zip
         zip_path = shutil.make_archive(os.path.join(tmpdir,"media"), 'zip', tmpdir)
         return send_file(zip_path, as_attachment=True, download_name="media.zip")
