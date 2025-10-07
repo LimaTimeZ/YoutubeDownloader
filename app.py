@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Cambia esta API_KEY por una segura
-API_KEY = os.environ.get("API_KEY", "Realne$$")
+API_KEY = os.environ.get("API_KEY", "limatime")
 
 @app.route("/download", methods=["POST"])
 def download():
@@ -55,6 +55,6 @@ def download():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-        # Comprimir todo en un zip
+        # Comprimir todo en un zip lol
         zip_path = shutil.make_archive(os.path.join(tmpdir,"media"), 'zip', tmpdir)
         return send_file(zip_path, as_attachment=True, download_name="media.zip")
