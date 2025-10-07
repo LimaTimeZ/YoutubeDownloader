@@ -1,7 +1,4 @@
 flask
 flask-cors
 yt-dlp
-boto3
-redis
-rq
 gunicorn
