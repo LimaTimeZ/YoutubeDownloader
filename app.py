@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Clave API (sin cambios)
-API_KEY = "Realne$$" 
+API_KEY = "limatime" 
 
 # OBTENER LAS COOKIES DEL ENTORNO
 COOKIES = {
