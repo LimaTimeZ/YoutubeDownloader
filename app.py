@@ -10,9 +10,16 @@ CORS(app)
 # Clave API (sin cambios)
 API_KEY = "limatime" 
 
-# OBTENER LAS COOKIES DEL ENTORNO
+# --- CREDENCIALES HARDCODEADAS PARA YOUTUBE ---
+# Nota: Si prefiere usar variables de entorno para mayor seguridad, 
+# cambie estas líneas por os.environ.get("YOUTUBE_USERNAME"), etc.
+YOUTUBE_USERNAME = "ytdownloaderlimax@gmail.com"
+YOUTUBE_PASSWORD = "ytdownloader123"
+# ---------------------------------------------
+
+# OBTENER LAS COOKIES DEL ENTORNO (Solo para Instagram y X)
 COOKIES = {
-    "youtube": os.environ.get("YOUTUBE_COOKIES"),
+    # YouTube ya no usa cookies, usa credenciales
     "instagram": os.environ.get("INSTAGRAM_COOKIES"),
     "twitter": os.environ.get("X_COOKIES")
 }
@@ -20,29 +27,26 @@ COOKIES = {
 def get_platform_config(url):
     """Detecta la plataforma y devuelve las opciones específicas de yt-dlp."""
     
-    # 1. Detección de Plataforma
-    # Usamos urlparse para obtener el dominio (netloc)
     netloc = urlparse(url).netloc.lower()
     
-    # Normalizamos el nombre de la plataforma y seleccionamos las cookies
     if "youtube.com" in netloc or "youtu.be" in netloc:
         platform_name = "youtube"
+        # Para YouTube, obtenemos la configuración de autenticación directamente en /download
+        cookie_content = None 
     elif "instagram.com" in netloc:
         platform_name = "instagram"
+        cookie_content = COOKIES.get("instagram")
     elif "twitter.com" in netloc or "x.com" in netloc:
         platform_name = "twitter"
+        cookie_content = COOKIES.get("twitter")
     else:
-        # Plataforma desconocida, usamos YouTube como fallback o fallamos
         return None, None, None 
 
-    cookie_content = COOKIES.get(platform_name)
-    
     # 2. Configuración Específica de yt-dlp
     ydl_platform_opts = {}
     
     if platform_name == "youtube":
         ydl_platform_opts.update({
-            # Nota: user-agent ya se define globalmente, pero se puede sobrescribir
             "geo_bypass": True,
         })
     
@@ -67,45 +71,60 @@ def download():
     platform_name, cookie_content, platform_opts = get_platform_config(url)
     
     if not platform_name:
-          return jsonify({"error":"Plataforma no soportada. Solo YouTube, X e Instagram."}), 400
+        return jsonify({"error":"Plataforma no soportada. Solo YouTube, X e Instagram."}), 400
     
-    if not cookie_content:
-        # Si la plataforma es soportada pero faltan las cookies en el entorno, fallamos
-        return jsonify({"error": f"Faltan las cookies para {platform_name}. No se puede descargar contenido restringido."}), 500
+    # Manejo de fallos si faltan cookies para X o Instagram
+    if platform_name != "youtube" and not cookie_content:
+        # Aquí permitimos intentar descargar contenido público sin fallar,
+        # pero emitimos una advertencia si se espera contenido restringido.
+        print(f"Advertencia: Faltan cookies para {platform_name}. Solo se podrá descargar contenido público.")
 
 
     with tempfile.TemporaryDirectory() as tmpdir:
         output_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
 
-        # Configuración de Cookies
-        cookie_file_path = os.path.join(tmpdir, f"{platform_name}_cookies.txt")
-        try:
-            with open(cookie_file_path, "w") as f:
-                f.write(cookie_content)
-        except Exception as e:
-            return jsonify({"error": f"Error al escribir el archivo de cookies: {e}"}), 500
+        # --- GESTIÓN DE COOKIES (SOLO PARA INSTAGRAM/X) ---
+        cookie_file_path = None
+        if platform_name != "youtube" and cookie_content:
+            cookie_file_path = os.path.join(tmpdir, f"{platform_name}_cookies.txt")
+            try:
+                with open(cookie_file_path, "w") as f:
+                    f.write(cookie_content)
+            except Exception as e:
+                return jsonify({"error": f"Error al escribir el archivo de cookies: {e}"}), 500
+        # ----------------------------------------------------
 
         # Elegir calidad (sin cambios)
         if quality == "low":
             fmt = "worst"
         elif quality == "medium":
-            # Usamos max-height para un control de calidad más específico
             fmt = "best[height<=720]"
         else:
             fmt = "best"
-        
+            
         # Opciones base de yt-dlp
         ydl_opts = {
-            "outtmpl": output_template, 
+            "outtmpl": output_template,  
             "merge_output_format": "mp4",
             "no_warnings": True,
-            "cookiefile": cookie_file_path, # USAR ARCHIVO DE COOKIES
+            # Se añade cookiefile solo si existe (para IG/X)
+            "cookiefile": cookie_file_path, 
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "Accept-Language": "en-US,en;q=0.5"
             }
         }
         
+        # --- AÑADIR CREDENCIALES DE YOUTUBE (El cambio clave) ---
+        if platform_name == "youtube" and YOUTUBE_USERNAME and YOUTUBE_PASSWORD:
+            ydl_opts.update({
+                "username": YOUTUBE_USERNAME,
+                "password": YOUTUBE_PASSWORD,
+                # Forzar la autenticación, útil si hay problemas
+                "force_generic_extractor": True 
+            })
+        # -----------------------------------------------------------
+
         # Combinar opciones específicas de la plataforma
         ydl_opts.update(platform_opts)
 
@@ -131,10 +150,9 @@ def download():
             return jsonify({"error": str(e)}), 500 
 
         # ----------------------------------------------------------------------
-        # **CORRECCIÓN CLAVE: Verificar archivos antes de comprimir**
+        # Verificar archivos antes de comprimir
         # ----------------------------------------------------------------------
         
-        # Ignoramos el archivo de cookies
         cookie_file_name = f"{platform_name}_cookies.txt"
         
         # Lista de archivos en el directorio temporal, excluyendo el archivo de cookies
@@ -144,18 +162,15 @@ def download():
         ]
 
         if not downloaded_files:
-            # Si yt-dlp termina sin error, pero no puede descargar nada, retornamos un 500 específico.
             return jsonify({"error": "La descarga falló o el contenido no está disponible (ej. contenido privado/geo-bloqueado)."}), 500
 
         # ----------------------------------------------------------------------
         
         # Comprimir todo en un zip
-        # shutil.make_archive comprimirá todo en tmpdir (incluyendo archivos multimedia)
         zip_path = shutil.make_archive(os.path.join(tmpdir,"media"), 'zip', tmpdir)
         return send_file(zip_path, as_attachment=True, download_name="media.zip")
 
-# El inicio del servidor Flask (generalmente se añade al final del archivo)
+# El inicio del servidor Flask
 if __name__ == '__main__':
-    # Usar el puerto de entorno para Render o un puerto por defecto
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
