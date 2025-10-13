@@ -14,7 +14,7 @@ API_KEY = "limatime"
 # Nota: Si prefiere usar variables de entorno para mayor seguridad, 
 # cambie estas líneas por os.environ.get("YOUTUBE_USERNAME"), etc.
 YOUTUBE_USERNAME = "ytdownloaderlimax@gmail.com"
-YOUTUBE_PASSWORD = "opyi tuff ytey rciz"
+YOUTUBE_PASSWORD = "opyituffyteyrciz"
 # ---------------------------------------------
 
 # OBTENER LAS COOKIES DEL ENTORNO (Solo para Instagram y X)
