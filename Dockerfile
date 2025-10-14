@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Instalar yt-dlp
-RUN pip install --no-cache-dir yt-dlp==2025.1.1
+RUN pip install --no-cache-dir yt-dlp
 
 # Instalar dependencias del proyecto
 WORKDIR /app
