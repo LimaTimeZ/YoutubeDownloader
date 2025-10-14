@@ -1,21 +1,24 @@
+# ------------------------- Dockerfile -------------------------
 FROM python:3.11-slim
 
-# Instalar ffmpeg
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
+# Dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg git build-essential ca-certificates wget && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Instalar yt-dlp
+RUN pip install --no-cache-dir yt-dlp==2025.1.1
 
-# Instalar dependencias
-COPY requirements.txt .
+# Instalar dependencias del proyecto
+WORKDIR /app
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar código
-COPY . .
+COPY . /app
 
-# Puerto interno para Render
-ENV PORT=10000
+# Carpeta para cookies persistentes
+RUN mkdir -p /data
+VOLUME ["/data"]
 
-# Ejecutar con gunicorn
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app --timeout 600 -w 2"]
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
