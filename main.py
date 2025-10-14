@@ -8,7 +8,7 @@ from typing import Optional
 app = FastAPI(title="YTDW - yt-dlp backend")
 
 # Configuración
-API_KEY = os.environ.get("API_KEY", "Realne$$")  # usa tu clave real en Render
+API_KEY = os.environ.get("API_KEY", "limatime")  # usa tu clave real en Render
 COOKIES_PATH = os.environ.get("COOKIES_PATH", "/data/cookies.txt")
 YT_DLP_CMD = os.environ.get("YT_DLP_CMD", "yt-dlp")
 
